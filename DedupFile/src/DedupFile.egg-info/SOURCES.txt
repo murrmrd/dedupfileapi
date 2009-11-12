@@ -1,0 +1,6 @@
+setup.py
+DedupFile.egg-info/PKG-INFO
+DedupFile.egg-info/SOURCES.txt
+DedupFile.egg-info/dependency_links.txt
+DedupFile.egg-info/requires.txt
+DedupFile.egg-info/top_level.txt
