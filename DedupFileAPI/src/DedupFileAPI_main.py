@@ -384,20 +384,21 @@ class DedupDB ():
             parent= self.FileTree.query(parent,PathDataID)
         return parent
 
-    def archive(self, dedupfile):
+    def archive(self, fullpath):
         #self.logger.debug("# Prepare path for Deduplication")
         # process path to build a dictionnary for path
         # exemple: c:\grafik => {'hash("c:"):"c:"','hash("grafik"):"grafik"'}
-        __FullFilename__ = dedupfile.getfullfilename()
+        __dedupfile__ = DedupFile(fullpath)
+        __FullFilename__ = __dedupfile__.getfullfilename()
         (__FullPath__, __FileName__) = os.path.split(__FullFilename__)
         (__FilenameRoot__, __Extension__) = os.path.splitext(__FileName__)
-        __PathSeparator__ = dedupfile.getpathseparator()
-        __Size__ =  dedupfile.getsize()
-        __CompressedSize__ = dedupfile.getcompressedsize()
-        __FullCompressedFilename__ = dedupfile.gettempfilename()
-        __CreateTime__ =  dedupfile.getcreatetime()
-        __LastAccessedTime__ =  dedupfile.getlastaccessedtime()
-        __LastModifiedTime__ =  dedupfile.getlastmodifiedtime()
+        __PathSeparator__ = __dedupfile__.getpathseparator()
+        __Size__ =  __dedupfile__.getsize()
+        __CompressedSize__ = __dedupfile__.getcompressedsize()
+        __FullCompressedFilename__ = __dedupfile__.gettempfilename()
+        __CreateTime__ =  __dedupfile__.getcreatetime()
+        __LastAccessedTime__ =  __dedupfile__.getlastaccessedtime()
+        __LastModifiedTime__ =  __dedupfile__.getlastmodifiedtime()
         __CompressedFlag__ = True
 
         # Fill PathElement table
@@ -422,7 +423,7 @@ class DedupDB ():
         else:
             TempFilename = __FullCompressedFilename__
 #       FileAccelerator = hashlib.sha512()
-        BlockSize = dedupfile.getBlockSize()
+        BlockSize = __dedupfile__.getBlockSize()
         in_file = open(TempFilename, "r")
         data = in_file.read(BlockSize)
 
@@ -748,8 +749,7 @@ if __name__ == "__main__":
             fullpath = os.path.join(directory,name)
             if os.path.isfile(fullpath):
                 print "** Dedup file: ",fullpath
-                __dedupfile__ = DedupFile(fullpath)
-                db.archive(__dedupfile__)
+                db.archive(fullpath)
 
                 print "** Archive it"
                 (FullPath,FileName) = os.path.split(fullpath)
