@@ -453,17 +453,45 @@ class DedupDB ():
         # flush changes to db
         self.db.commit()
 
+    def unzip_file_into_dir(file, dir):
+        #os.mkdir(dir, 0777)
+        zfobj = zipfile.ZipFile(file)
+        for name in zfobj.namelist():
+            if name.endswith('/'):
+                #os.mkdir(os.path.join(dir, name))
+                ""
+            else:
+                outfile = open(os.path.join(dir, name), 'wb')
+                outfile.write(zfobj.read(name))
+                outfile.close()
+
     def restore(self, NodeID):
         "restore fil referenced by NodeID to original location"
         FullPath = self.getfullpath(NodeID)
         (id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag) = self.Node.get(NodeID)
         (id, SequenceData) = self.Sequence.get(BlockSequence_id)
         SequenceDict = json.loads(SequenceData)
-        out_file = open(FullPath,"w")
+        
+        
+        #TempFile = tempfile.TemporaryFile()
+        #self.__TempFilename__ = TempFile.name
+        
+        if (compressedflag):
+            " file was compressed so we rebuild a temporary compressed file"
+            out_file = tempfile.TemporaryFile()
+        else:
+            out_file = open(FullPath,"w")
+
         for BlockID in SequenceDict:
             (id,HashKey,data) =  self.Block.get(BlockID)
             out_file.write(data)
         out_file.close()
+
+        if (compressedflag):
+            " file was compressed so we rebuild a temporary compressed file"
+            (Path,FileName) = os.path.split(FullPath)
+            self.unzip_file_into_dir(out_file,Path)
+
 
 
 
