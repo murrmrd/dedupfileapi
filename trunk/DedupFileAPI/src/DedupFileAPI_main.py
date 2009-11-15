@@ -453,8 +453,9 @@ class DedupDB ():
         # flush changes to db
         self.db.commit()
 
-    def unzip_file_into_dir(file, dir):
+    def unzip_file_into_dir(self,file, dir):
         #os.mkdir(dir, 0777)
+        print file, dir
         zfobj = zipfile.ZipFile(file)
         for name in zfobj.namelist():
             if name.endswith('/'):
@@ -478,10 +479,13 @@ class DedupDB ():
         
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
-            out_file = tempfile.TemporaryFile()
+            #out_file = tempfile.TemporaryFile()
+            out_file = open("c:\\test.zip","w")
+
         else:
             out_file = open(FullPath,"w")
 
+        print out_file.name
         for BlockID in SequenceDict:
             (id,HashKey,data) =  self.Block.get(BlockID)
             out_file.write(data)
@@ -490,7 +494,9 @@ class DedupDB ():
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
             (Path,FileName) = os.path.split(FullPath)
-            self.unzip_file_into_dir(out_file,Path)
+            print out_file.name,Path
+            self.unzip_file_into_dir(out_file.name,Path)
+        
 
 
 
@@ -757,12 +763,12 @@ if __name__ == "__main__":
 
     print "Build some random files in ", startDir
     for i in range(1,2):
-        mkfile(os.path.join(startDir,"filename"+str(i)+".txt"),i*5)
+        mkfile(os.path.join(startDir,"filename"+str(i)+".txt"),i*500)
     for j in range(1,2):
         for i in range(1,2):
             NextDir = os.path.join(startDir,"subDIR"+str(j))
             print "Build some random files in ", NextDir
-            mkfile(os.path.join(NextDir,"filename"+str(i)+".txt"),i*5)
+            mkfile(os.path.join(NextDir,"filename"+str(i)+".txt"),i*500)
 
     print "Prepare DB"
     db = DedupDB()
