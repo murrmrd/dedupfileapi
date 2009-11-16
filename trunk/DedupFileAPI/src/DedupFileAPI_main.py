@@ -422,10 +422,13 @@ class DedupDB ():
             __CompressedFlag__ = False
         else:
             TempFilename = __FullCompressedFilename__
+
 #       FileAccelerator = hashlib.sha512()
         BlockSize = __dedupfile__.getBlockSize()
         in_file = open(TempFilename, "r")
         data = in_file.read(BlockSize)
+
+        print ''.join("%02x " % ord(c) for c in data)
 
         if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
             self.Block.insert(data)
@@ -433,6 +436,7 @@ class DedupDB ():
         #       FileAccelerator.update(data)
         while len(data) == BlockSize:
             data = in_file.read(BlockSize)
+            print ''.join("%02x " % ord(c) for c in data)
             if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
                 self.Block.insert(data)
             SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
@@ -455,7 +459,7 @@ class DedupDB ():
 
     def unzip_file_into_dir(self,file, dir):
         #os.mkdir(dir, 0777)
-        print file, dir
+        
         zfobj = zipfile.ZipFile(file)
         for name in zfobj.namelist():
             if name.endswith('/'):
@@ -472,6 +476,12 @@ class DedupDB ():
         (id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag) = self.Node.get(NodeID)
         (id, SequenceData) = self.Sequence.get(BlockSequence_id)
         SequenceDict = json.loads(SequenceData)
+
+        print NodeID
+        print FullPath
+        print id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag
+        print id, SequenceData
+        print SequenceDict
         
         
         #TempFile = tempfile.TemporaryFile()
@@ -480,22 +490,24 @@ class DedupDB ():
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
             #out_file = tempfile.TemporaryFile()
-            out_file = open("c:\\test.zip","w")
-
+            out_file = open("c:\\grafik\\test.zip","w")
         else:
             out_file = open(FullPath,"w")
 
-        print out_file.name
+        
         for BlockID in SequenceDict:
             (id,HashKey,data) =  self.Block.get(BlockID)
+            print ''.join("%02x " % ord(c) for c in data)
+            
             out_file.write(data)
+        out_file.flush()
         out_file.close()
 
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
             (Path,FileName) = os.path.split(FullPath)
             print out_file.name,Path
-            self.unzip_file_into_dir(out_file.name,Path)
+            #self.unzip_file_into_dir(out_file.name,"c:\\")
         
 
 
@@ -757,6 +769,65 @@ def comparefiles(file1,file2):
 if __name__ == "__main__":
 
     startDir = 'c:\\grafik'
+
+    print "Remove ",startDir
+    removeall(startDir)
+    
+    mkfile('c:\\grafik\\test.txt',500)
+
+    print "Prepare DB"
+    db = DedupDB()
+
+    print "** Dedup file: "
+    db.archive('c:\\grafik\\test.txt')
+    
+    archive = zipfile.ZipFile('c:\\grafik\\test.zip', "w", zipfile.ZIP_DEFLATED) # "a" to append, "r" to read
+    archive.write('c:\\grafik\\test.txt')
+    archive.close()
+    print "** Archive original"
+    (FullPath,FileName) = os.path.split('c:\\grafik\\test.zip')
+    (FilenameRoot,Extension) = os.path.splitext(FileName)
+    newfile = 'c:\\grafik\\test.zip'.replace(Extension, '~'+Extension)
+    if os.path.exists(newfile):
+        os.remove(newfile)
+    os.rename('c:\\grafik\\test.zip',newfile)
+
+
+    print "** Archive original"
+    (FullPath,FileName) = os.path.split('c:\\grafik\\test.txt')
+    (FilenameRoot,Extension) = os.path.splitext(FileName)
+    newfile = 'c:\\grafik\\test.txt'.replace(Extension, '~'+Extension)
+
+    if os.path.exists(newfile):
+        os.remove(newfile)
+    os.rename('c:\\grafik\\test.txt',newfile)
+
+    TreeID = db.getfiletreeidbypath('c:\\grafik')
+    NodeIDList = db.listfiletree(TreeID,False)
+    for NodeID in NodeIDList:
+            restoredfilename = db.getfullpath(NodeID)
+            (FullPath,FileName) = os.path.split(restoredfilename)
+            (FilenameRoot,Extension) = os.path.splitext(FileName)
+            backupfilename =  restoredfilename.replace(Extension, '~'+Extension)
+            print "** Restore Node ",NodeID, " = ", restoredfilename
+            db.restore(NodeID)
+            #comparefiles(backupfilename,restoredfilename)
+
+#    print "** Unzip"
+#    zfobj = zipfile.ZipFile('c:\\grafik\\test.zip')
+#    for name in zfobj.namelist():
+#        if name.endswith('/'):
+#            #os.mkdir(os.path.join(dir, name))
+#            ""
+#        else:
+#            outfile = open(os.path.join('c:\\', name), 'wb')
+#            outfile.write(zfobj.read(name))
+#            outfile.close()
+
+#    comparefiles('c:\\grafik\\test.txt',newfile)
+    
+    exit()
+    
 
     print "Remove ",startDir
     removeall(startDir)
