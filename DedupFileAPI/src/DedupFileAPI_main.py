@@ -425,7 +425,7 @@ class DedupDB ():
 
 #       FileAccelerator = hashlib.sha512()
         BlockSize = __dedupfile__.getBlockSize()
-        in_file = open(TempFilename, "r")
+        in_file = open(TempFilename, "rb")
         data = in_file.read(BlockSize)
 
         print ''.join("%02x " % ord(c) for c in data)
