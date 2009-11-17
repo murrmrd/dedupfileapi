@@ -2,6 +2,8 @@ import os.path
 __author__ = "oliviero"
 __date__ = "$23 oct. 2009 17:03:27$"
 
+import zlib
+import binascii
 import sqlite3
 import sys
 import time
@@ -184,6 +186,14 @@ class Sequence():
     def query(self,SequenceDict):
         ""
         a = json.dumps(SequenceDict)
+        #original_data = a
+        #print 'Original     :', len(original_data), original_data
+        #compressed = zlib.compress(original_data)
+        #print 'Compressed   :', len(compressed), binascii.hexlify(compressed)
+        #decompressed = zlib.decompress(compressed)
+        #print 'Decompressed :', len(decompressed), decompressed
+
+
         ID = -1
         str = 'SELECT id FROM Sequence where sequence="' + a + '"'
         rows = self.db.execute(str)
@@ -302,6 +312,7 @@ class Block():
 
 class DedupDB ():
     ""
+    __PathSeparator__ = "\\"
     logger = logging.getLogger("DedupDB")
     db = sqlite3.connect(':memory:')
 
@@ -389,6 +400,7 @@ class DedupDB ():
         # process path to build a dictionnary for path
         # exemple: c:\grafik => {'hash("c:"):"c:"','hash("grafik"):"grafik"'}
         __dedupfile__ = DedupFile(fullpath)
+
         __FullFilename__ = __dedupfile__.getfullfilename()
         (__FullPath__, __FileName__) = os.path.split(__FullFilename__)
         (__FilenameRoot__, __Extension__) = os.path.splitext(__FileName__)
@@ -402,19 +414,23 @@ class DedupDB ():
         __CompressedFlag__ = True
 
         # Fill PathElement table
+        print "*** Process path elements"
         PathElements = __FullPath__.split(__PathSeparator__)
         for PathElement in PathElements:
             self.fill_pathdata_table(PathElement)
         self.fill_pathdata_table(__FilenameRoot__)
 
         # Fill Extension table
+        print "*** Process file extension"
         if not(self.Extension.exist(__Extension__)):
             self.Extension.insert(__Extension__)
         __ExtensionID__ = self.Extension.query(__Extension__)
 
         # Fill FileTree table
+        print "*** Process file tree"
         __FileTreeID__ = self.fill_filetree_table(__FullPath__,__FilenameRoot__,__PathSeparator__)
 
+        print "*** Build file sequence"
         SequenceDict=[]
         #self.logger.debug("Split temporary compressed file into blocks")
         if (__CompressedSize__>__Size__):
@@ -428,7 +444,7 @@ class DedupDB ():
         in_file = open(TempFilename, "rb")
         data = in_file.read(BlockSize)
 
-        print ''.join("%02x " % ord(c) for c in data)
+        #print ''.join("%02x " % ord(c) for c in data)
 
         if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
             self.Block.insert(data)
@@ -436,9 +452,12 @@ class DedupDB ():
         #       FileAccelerator.update(data)
         while len(data) == BlockSize:
             data = in_file.read(BlockSize)
-            print ''.join("%02x " % ord(c) for c in data)
+            #print ''.join("%02x " % ord(c) for c in data)
             if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
+                #print "**** Store new block"
                 self.Block.insert(data)
+            else:
+                print "**** Existing block reused"
             SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
 #           FileAccelerator.update(data)
         in_file.close()
@@ -448,6 +467,7 @@ class DedupDB ():
         __SequenceID__=self.Sequence.query(SequenceDict)
 
         #Create Node item and return NodeID
+        print "*** Create file node"
         self.Node.insert(__SequenceID__,__ExtensionID__,__Size__,__CreateTime__,__LastAccessedTime__,__LastModifiedTime__,__CompressedFlag__)
         __NodeID__ = self.Node.query(__SequenceID__)
 
@@ -455,12 +475,14 @@ class DedupDB ():
         self.FileTree.update(__FileTreeID__,__NodeID__)
 
         # flush changes to db
+        print "*** Commit changes to database"
         self.db.commit()
 
     def unzip_file_into_dir(self,file, dir):
         #os.mkdir(dir, 0777)
         
         zfobj = zipfile.ZipFile(file)
+        
         for name in zfobj.namelist():
             if name.endswith('/'):
                 #os.mkdir(os.path.join(dir, name))
@@ -477,11 +499,11 @@ class DedupDB ():
         (id, SequenceData) = self.Sequence.get(BlockSequence_id)
         SequenceDict = json.loads(SequenceData)
 
-        print NodeID
-        print FullPath
-        print id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag
-        print id, SequenceData
-        print SequenceDict
+#        print NodeID
+#        print FullPath
+#        print id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag
+#        print id, SequenceData
+#        print SequenceDict
         
         
         #TempFile = tempfile.TemporaryFile()
@@ -489,15 +511,19 @@ class DedupDB ():
         
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
-            #out_file = tempfile.TemporaryFile()
-            out_file = open("c:\\grafik\\test.zip","w")
+            temporaryfile = tempfile.TemporaryFile()
+            temporaryfilename = temporaryfile.name
+            temporaryfile.close()
+
+            out_file = open(temporaryfilename,"wb")
+            #out_file = open("c:\\grafik\\test.zip","wb")
         else:
-            out_file = open(FullPath,"w")
+            out_file = open(FullPath,"wb")
 
         
         for BlockID in SequenceDict:
             (id,HashKey,data) =  self.Block.get(BlockID)
-            print ''.join("%02x " % ord(c) for c in data)
+            #print ''.join("%02x " % ord(c) for c in data)
             
             out_file.write(data)
         out_file.flush()
@@ -506,17 +532,13 @@ class DedupDB ():
         if (compressedflag):
             " file was compressed so we rebuild a temporary compressed file"
             (Path,FileName) = os.path.split(FullPath)
-            print out_file.name,Path
-            #self.unzip_file_into_dir(out_file.name,"c:\\")
+            #print out_file.name,Path
+            #print FullPath, Path, FileName,
+            (Root,Tail) = os.path.splitdrive(FullPath)
+            self.unzip_file_into_dir(out_file.name,os.path.join(Root,self.__PathSeparator__))
         
-
-
-
-
-
     def getfullpath(self,NodeID):
-        __PathSeparator__ = "\\"
-
+       
         (id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag) = self.Node.get(NodeID)
         st = ""
         (id,Extension) = self.Extension.get(Extension_id)
@@ -528,7 +550,7 @@ class DedupDB ():
         while (Parent != -1):
             (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.get(Parent)
             (id,Name) = self.PathData.get(PathData_id)
-            st = Name +__PathSeparator__+ st
+            st = Name +self.__PathSeparator__+ st
         return st
 
     def printnodedetails(self,NodeID):
@@ -608,7 +630,7 @@ class DedupDB ():
 
 class DedupFile ():
     ""
-    __BlockSize__ = 16
+    __BlockSize__ = 4
     __PathSeparator__ = "\\"
 
     def __init__(self, FullFilename):
@@ -628,6 +650,7 @@ class DedupFile ():
         #logger.debug("# Collect file stats")
         self.__FullFilename__ = os.path.normpath(FullFilename)
 
+        print "*** Get files stats"
         stats = os.stat(self.__FullFilename__)
         self.__Size__ = stats[stat.ST_SIZE] #Size of the file in bytes. This is limited to 64 bits, so for large files should use the win32file.GetFileSize() function, which returns large file sizes as a long integer.
         self.__LastAccessed__ = stats[stat.ST_ATIME] # The time the file was last accessed or zero if the filesystem doesn't support this information.
@@ -641,6 +664,7 @@ class DedupFile ():
         self.__ST_CTIME__ = stats[stat.ST_CTIME] # The time the file was created or zero if the filesystem doesn't support this information.
 
         #logger.debug("# Compress file to temporary")
+        print "*** Compress file to temporary"
         TempFile = tempfile.TemporaryFile()
         self.__TempFilename__ = TempFile.name
         TempFile.close()
@@ -648,6 +672,7 @@ class DedupFile ():
         archive.write(self.__FullFilename__)
         archive.close()
 
+        print "*** Get Compressed file stats"
         CompressedFileStats = os.stat(self.__TempFilename__)
         self.__CompressedSize__ = CompressedFileStats[stat.ST_SIZE] #Size of the file in bytes. This is limited to 64 bits, so for large files should use the win32file.GetFileSize() function, which returns large file sizes as a long integer.
 
@@ -761,9 +786,10 @@ def comparefiles(file1,file2):
     # pick two files you want to compare
 
     if filecmp.cmp(file1, file2):
-        print "*** Files %s and %s are identical" % (file1, file2)
+        print "### Files %s and %s are identical" % (file1, file2)
     else:
-        print "*** Files %s and %s differ!" % (file1, file2)
+        print "### Files %s and %s differ!" % (file1, file2)
+        exit(-1)
 
 
 if __name__ == "__main__":
@@ -773,7 +799,7 @@ if __name__ == "__main__":
     print "Remove ",startDir
     removeall(startDir)
     
-    mkfile('c:\\grafik\\test.txt',500)
+    mkfile('c:\\grafik\\test.txt',500*10)
 
     print "Prepare DB"
     db = DedupDB()
@@ -781,16 +807,16 @@ if __name__ == "__main__":
     print "** Dedup file: "
     db.archive('c:\\grafik\\test.txt')
     
-    archive = zipfile.ZipFile('c:\\grafik\\test.zip', "w", zipfile.ZIP_DEFLATED) # "a" to append, "r" to read
-    archive.write('c:\\grafik\\test.txt')
-    archive.close()
-    print "** Archive original"
-    (FullPath,FileName) = os.path.split('c:\\grafik\\test.zip')
-    (FilenameRoot,Extension) = os.path.splitext(FileName)
-    newfile = 'c:\\grafik\\test.zip'.replace(Extension, '~'+Extension)
-    if os.path.exists(newfile):
-        os.remove(newfile)
-    os.rename('c:\\grafik\\test.zip',newfile)
+#    archive = zipfile.ZipFile('c:\\grafik\\test.zip', "w", zipfile.ZIP_DEFLATED) # "a" to append, "r" to read
+#    archive.write('c:\\grafik\\test.txt')
+#    archive.close()
+#    print "** Archive original"
+#    (FullPath,FileName) = os.path.split('c:\\grafik\\test.zip')
+#    (FilenameRoot,Extension) = os.path.splitext(FileName)
+#    newfile = 'c:\\grafik\\test.zip'.replace(Extension, '~'+Extension)
+#    if os.path.exists(newfile):
+#        os.remove(newfile)
+#    os.rename('c:\\grafik\\test.zip',newfile)
 
 
     print "** Archive original"
@@ -811,7 +837,7 @@ if __name__ == "__main__":
             backupfilename =  restoredfilename.replace(Extension, '~'+Extension)
             print "** Restore Node ",NodeID, " = ", restoredfilename
             db.restore(NodeID)
-            #comparefiles(backupfilename,restoredfilename)
+            comparefiles(backupfilename,restoredfilename)
 
 #    print "** Unzip"
 #    zfobj = zipfile.ZipFile('c:\\grafik\\test.zip')
