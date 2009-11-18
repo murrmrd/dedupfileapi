@@ -186,6 +186,7 @@ class Sequence():
     def query(self,SequenceDict):
         ""
         a = json.dumps(SequenceDict)
+        compressed = zlib.compress(a)
         #original_data = a
         #print 'Original     :', len(original_data), original_data
         #compressed = zlib.compress(original_data)
@@ -195,8 +196,9 @@ class Sequence():
 
 
         ID = -1
-        str = 'SELECT id FROM Sequence where sequence="' + a + '"'
-        rows = self.db.execute(str)
+        #str = 'SELECT id FROM Sequence where sequence="' + sqlite3.Binary(compressed) + '"'
+        #rows = self.db.execute(str)
+        rows = self.db.execute('SELECT id FROM Sequence where sequence=?',(sqlite3.Binary(compressed),))
         for row in rows:
             ID = row[0]
         return ID
@@ -204,10 +206,12 @@ class Sequence():
     def exist(self,SequenceDict):
         ""
         a = json.dumps(SequenceDict)
+        compressed = zlib.compress(a)
         result = False
-        str = 'SELECT count(*) FROM Sequence where sequence="' + a + '"'
+        #str = 'SELECT count(*) FROM Sequence where sequence="' + sqlite3.Binary(compressed) + '"'
         #
-        rows = self.db.execute(str)
+        #rows = self.db.execute(str)
+        rows = self.db.execute('SELECT count(*) FROM Sequence where sequence=?',(sqlite3.Binary(compressed),))
         for row in rows:
             if (row[0] != 0):
                 result = True
@@ -216,19 +220,25 @@ class Sequence():
     def insert(self,SequenceDict):
         ""
         a = json.dumps(SequenceDict)
+        compressed = zlib.compress(a)
+        #print 'Compressed   :', len(a), len(compressed), binascii.hexlify(compressed)
 
         #self.db.execute('INSERT INTO Sequence (sequence) VALUES (?)', (sqlite3.Binary(SequenceDict),))
-        self.db.execute('INSERT INTO Sequence (sequence) VALUES (?)', (a,))
+        #self.db.execute('INSERT INTO Sequence (sequence) VALUES (?)', (a,))
+        self.db.execute('INSERT INTO Sequence (sequence) VALUES (?)', (sqlite3.Binary(compressed),))
         ID = -1
-        rows = self.db.execute('SELECT id FROM Sequence where sequence=?',(a,))
+        rows = self.db.execute('SELECT id FROM Sequence where sequence=?',(sqlite3.Binary(compressed),))
         for row in rows:
             ID = row[0]
         return ID
 
-    def get(self,ID):
+    def get_sequence(self,ID):
         ""
         cursor =  self.db.execute('SELECT * FROM Sequence where id=?',(ID,))
-        return cursor.fetchone()
+        (id,compressed) = cursor.fetchone()
+        decompressed = zlib.decompress(compressed)
+        SequenceDict = json.loads(decompressed)
+        return SequenceDict
 
 class Node():
     def __init__(self,db):
@@ -279,7 +289,8 @@ class Block():
 
     def create(self):
         ""
-        self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL,HashKey TEXT, Data BLOB,PRIMARY KEY (id))')
+        #self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL,HashKey TEXT, Data BLOB,PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL, Data BLOB,PRIMARY KEY (id))')
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS DataBlocks')
@@ -289,9 +300,18 @@ class Block():
         cursor =  self.db.execute('SELECT * FROM DataBlocks where id=?',(ID,))
         return cursor.fetchone()
 
-    def exist(self,HashKey):
+#    def exist(self,HashKey):
+#        ""
+#        rows=self.db.execute('SELECT id FROM DataBlocks where HashKey=?',(HashKey,))
+#        result = False
+#        for row in rows:
+#            if (row[0] != 0):
+#                result = True
+#        return result
+
+    def exist_block(self,data):
         ""
-        rows=self.db.execute('SELECT id FROM DataBlocks where HashKey=?',(HashKey,))
+        rows=self.db.execute('SELECT id FROM DataBlocks where Data=?',(sqlite3.Binary(data),))
         result = False
         for row in rows:
             if (row[0] != 0):
@@ -300,12 +320,21 @@ class Block():
 
     def insert(self,data):
         ""
-        self.db.execute('INSERT INTO DataBlocks (HashKey, Data) VALUES (?, ?)', (hashlib.sha512(data).hexdigest(), sqlite3.Binary(data)))
+        #self.db.execute('INSERT INTO DataBlocks (HashKey, Data) VALUES (?, ?)', (hashlib.sha512(data).hexdigest(), sqlite3.Binary(data)))
+        self.db.execute('INSERT INTO DataBlocks (Data) VALUES (?)', (sqlite3.Binary(data),))
 
-    def query(self,HashKey):
+#    def query(self,HashKey):
+#        ""
+#        ID = -1
+#        rows = self.db.execute('SELECT id FROM DataBlocks where HashKey=?',(HashKey,))
+#        for row in rows:
+#            ID = row[0]
+#        return ID
+
+    def query_block(self,data):
         ""
         ID = -1
-        rows = self.db.execute('SELECT id FROM DataBlocks where HashKey=?',(HashKey,))
+        rows = self.db.execute('SELECT id FROM DataBlocks where Data=?',(sqlite3.Binary(data),))
         for row in rows:
             ID = row[0]
         return ID
@@ -446,19 +475,23 @@ class DedupDB ():
 
         #print ''.join("%02x " % ord(c) for c in data)
 
-        if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
+        #if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
+        if not(self.Block.exist_block(data)):
             self.Block.insert(data)
-        SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
+#        SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
+        SequenceDict.append(self.Block.query_block(data))
         #       FileAccelerator.update(data)
         while len(data) == BlockSize:
             data = in_file.read(BlockSize)
             #print ''.join("%02x " % ord(c) for c in data)
-            if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
+#            if not(self.Block.exist(hashlib.sha512(data).hexdigest())):
+            if not(self.Block.exist_block(data)):
                 #print "**** Store new block"
                 self.Block.insert(data)
             else:
                 print "**** Existing block reused"
-            SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
+#            SequenceDict.append(self.Block.query(hashlib.sha512(data).hexdigest()))
+            SequenceDict.append(self.Block.query_block(data))
 #           FileAccelerator.update(data)
         in_file.close()
 
@@ -496,8 +529,8 @@ class DedupDB ():
         "restore fil referenced by NodeID to original location"
         FullPath = self.getfullpath(NodeID)
         (id,BlockSequence_id,Extension_id,size,createtime,lastmodifiedtime,lastaccessedtime, compressedflag) = self.Node.get(NodeID)
-        (id, SequenceData) = self.Sequence.get(BlockSequence_id)
-        SequenceDict = json.loads(SequenceData)
+        SequenceDict = self.Sequence.get_sequence(BlockSequence_id)
+        
 
 #        print NodeID
 #        print FullPath
@@ -522,7 +555,8 @@ class DedupDB ():
 
         
         for BlockID in SequenceDict:
-            (id,HashKey,data) =  self.Block.get(BlockID)
+            #(id,HashKey,data) =  self.Block.get(BlockID)
+            (id,data) =  self.Block.get(BlockID)
             #print ''.join("%02x " % ord(c) for c in data)
             
             out_file.write(data)
@@ -630,7 +664,7 @@ class DedupDB ():
 
 class DedupFile ():
     ""
-    __BlockSize__ = 4
+    __BlockSize__ = 256
     __PathSeparator__ = "\\"
 
     def __init__(self, FullFilename):
@@ -771,11 +805,12 @@ def removeall(path):
 def mkfile(FileName, Size):
     ""
     dir = os.path.dirname(FileName)
+
     if not os.path.exists(dir):
         os.makedirs(dir)
-    fh = open(FileName, 'w')
+    fh = open(FileName, 'wb')
     for i in range (0,Size):
-	fh.write(random.choice('abcdefghijklmonpqrstuvwxyz0123456789'))
+	fh.write(random.choice('abcdefghijklmonpqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ '))
     fh.close()
     print "* create ", FileName, "- Size = ",str(Size)
 
@@ -799,10 +834,11 @@ if __name__ == "__main__":
     print "Remove ",startDir
     removeall(startDir)
     
-    mkfile('c:\\grafik\\test.txt',500*10)
+    mkfile('c:\\grafik\\test.txt',500*1000)
 
     print "Prepare DB"
     db = DedupDB()
+
 
     print "** Dedup file: "
     db.archive('c:\\grafik\\test.txt')
@@ -838,6 +874,14 @@ if __name__ == "__main__":
             print "** Restore Node ",NodeID, " = ", restoredfilename
             db.restore(NodeID)
             comparefiles(backupfilename,restoredfilename)
+    
+    stats = os.stat("c:\\grafik\\test.txt")
+    filesize =  stats[stat.ST_SIZE]
+    stats = os.stat("database")
+    databasesize = stats[stat.ST_SIZE]
+    print filesize, databasesize, float(100*databasesize/filesize)
+
+
 
 #    print "** Unzip"
 #    zfobj = zipfile.ZipFile('c:\\grafik\\test.zip')
@@ -907,5 +951,5 @@ if __name__ == "__main__":
             comparefiles(backupfilename,restoredfilename)
     print "Done!"
     exit()
-    "to test subversion"
+    
 
