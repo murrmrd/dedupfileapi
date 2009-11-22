@@ -268,11 +268,9 @@ class DedupDB ():
             #print FullPath, Path, FileName,
 
             (Root,Tail) = os.path.splitdrive(FullPath)
-            print os.path.separator
-            print os.path.
-            exit()
-
-            self.unzip_file_into_dir(out_file.name,os.path.join(Root,os.path.separator))
+            
+            
+            self.unzip_file_into_dir(out_file.name,os.path.join(Root,os.sep))
 
     def getfullpath(self,NodeID):
 
@@ -299,7 +297,7 @@ class DedupDB ():
 
     def printfiletreedetails(self,NodeID):
         "print out information about filetree i.e. directory"
-        __PathSeparator__ = "\\"
+        __PathSeparator__ = os.sep
 
         st = ""
         (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.get(NodeID)
@@ -346,7 +344,7 @@ class DedupDB ():
 
     def getfiletreeidbypath(self,DirPath):
         " Return FileTree row id for path 'DirPath'"
-        __PathSeparator__ = "\\"
+        __PathSeparator__ = os.sep
         ParentID = -1
         PathElements = DirPath.split(__PathSeparator__)
         for PathElement in PathElements:
