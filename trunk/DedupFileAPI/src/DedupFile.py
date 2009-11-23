@@ -26,8 +26,8 @@ import random
 
 class DedupFile ():
     ""
-    __BlockSize__ = 256
-    __PathSeparator__ = "\\"
+    __BlockSize__ = 64
+    __PathSeparator__ = os.sep
 
     def __init__(self, FullFilename):
         " "

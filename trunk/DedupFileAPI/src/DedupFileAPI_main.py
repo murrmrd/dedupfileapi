@@ -3,6 +3,9 @@ __author__ = "oliviero"
 __date__ = "$23 oct. 2009 17:03:27$"
 
 import zlib
+import subprocess
+import hotshot
+import time
 import binascii
 import sqlite3
 import sys
@@ -74,7 +77,7 @@ def comparefiles(file1,file2):
     # compare two files and check if they are equal
     # files can be binary or text based
     # pick two files you want to compare
-
+    
     if filecmp.cmp(file1, file2):
         print "### Files %s and %s are identical" % (file1, file2)
     else:
@@ -134,7 +137,7 @@ def batch():
             comparefiles(backupfilename,restoredfilename)
     print "Done!"
 
-def batch1():
+def batch1(factor):
     startDir = 'c:\\grafik'
     print os.getenv('HOME')
     startDir = os.path.join(os.getenv('HOME'),"DedupFileAPI-test")
@@ -144,7 +147,7 @@ def batch1():
     removeall(startDir)
 
     filename = os.path.join(startDir,'test.txt')
-    mkfile(filename,500*1000)
+    mkfile(filename,500*factor)
 
     print "Prepare DB"
     db = DedupDB.DedupDB()
@@ -165,9 +168,13 @@ def batch1():
 
 
     print "** Archive original"
+    print filename
     (FullPath,FileName) = os.path.split(filename)
+    print FullPath,FileName
     (FilenameRoot,Extension) = os.path.splitext(FileName)
+    print FilenameRoot,Extension
     newfile = filename.replace(Extension, '~'+Extension)
+    print newfile
 
     if os.path.exists(newfile):
         os.remove(newfile)
@@ -179,8 +186,11 @@ def batch1():
             print NodeID
             restoredfilename = db.getfullpath(NodeID)
             print restoredfilename
+            
             (FullPath,FileName) = os.path.split(restoredfilename)
+            print FullPath,FileName
             (FilenameRoot,Extension) = os.path.splitext(FileName)
+            print FilenameRoot,Extension
             backupfilename =  restoredfilename.replace(Extension, '~'+Extension)
             print backupfilename
             print "** Restore Node ",NodeID, " = ", restoredfilename
@@ -210,6 +220,16 @@ def batch1():
 
 
 if __name__ == "__main__":
-
-    batch1()
+    
+    Profilerfile1 = os.path.join(os.getenv('HOME'),"DedupFileAPI.prof")
+    Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
+    prof = hotshot.Profile(Profilerfile1)
+    prof.start()
+    batch1(1000)
+    prof.stop()
+    prof.close()
+    #subprocess.call("hotshot2calltree","-o "+ Profilerfile2+ " "+Profilerfile1 )
+    os.system("hotshot2calltree "+"-o "+ Profilerfile2+ " "+Profilerfile1 )
+    os.system("kcachegrind "+Profilerfile2)
+    
     exit()
