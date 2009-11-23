@@ -278,14 +278,17 @@ class DedupDB ():
         st = ""
         (id,Extension) = self.Extension.get(Extension_id)
         st = st +  Extension
+        print st
         (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.getbynodeid(NodeID)
         (id,Name) = self.PathData.get(PathData_id)
-        st = Name + st
+        st = Name +  st
+        print st
 
         while (Parent != -1):
             (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.get(Parent)
             (id,Name) = self.PathData.get(PathData_id)
-            st = Name +self.__PathSeparator__+ st
+            st = Name + os.sep + st
+            print st
         return st
 
     def printnodedetails(self,NodeID):
@@ -307,7 +310,7 @@ class DedupDB ():
         while (Parent != -1):
             (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.get(Parent)
             (id,Name) = self.PathData.get(PathData_id)
-            st = Name +__PathSeparator__+ st
+            st = Name +os.sep+ st
 
         st = "D"+"|"+st
         print st
