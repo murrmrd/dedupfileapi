@@ -36,6 +36,7 @@ import DedupDB
 
 ERROR_STR= """Error removing %(path)s, %(error)s """
 
+
 def rmgeneric(path, __func__):
     try:
         __func__(path)
@@ -219,13 +220,97 @@ def batch1(factor):
 #    comparefiles('c:\\grafik\\test.txt',newfile)
 
 
+
+def PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,__recursecounter__):
+    __recursecounter__ = __recursecounter__ + 1
+    FileSizeIncrement = MaxFileSize/Nbfiles
+    for i in range(1,Nbfiles+1):
+        FileName = os.path.join(StartDir,'test'+str(i)+'.txt')
+        FileSize = i*FileSizeIncrement
+        #print "Create random file ", FileName, " - size= ",FileSize
+        mkfile(FileName,FileSize)
+
+    if (__recursecounter__< NbDir):
+        for i in range(1,NbDir+1):
+            DirectoryName = os.path.join(StartDir,'dir'+str(i))
+            #print "Create directory ", DirectoryName
+            PopulateDirectory(DirectoryName, Nbfiles, NbDir, MaxFileSize,__recursecounter__)
+
+def ProcessFile(db,filename):
+    print "** Dedup file: "
+    db.archive(filename)
+
+    print "** Archive original"
+    (FullPath,FileName) = os.path.split(filename)
+    (FilenameRoot,Extension) = os.path.splitext(FileName)
+    newfile = filename.replace(Extension, '~'+Extension)
+    if os.path.exists(newfile):
+        os.remove(newfile)
+    os.rename(filename,newfile)
+
+
+def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
+    ""
+    print "Remove ",startDir
+    removeall(startDir)
+
+    print "Populate ",startDir
+    PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,0)
+    totalfilesize = 0
+
+    print "Prepare DB"
+    db = DedupDB.DedupDB()
+
+    print "Start archiving at ",startDir
+
+    directories = [startDir]
+    while len(directories)>0:
+        directory = directories.pop()
+        print "* Process directory: ",directory
+        for name in os.listdir(directory):
+            fullpath = os.path.join(directory,name)
+            if os.path.isfile(fullpath):
+                print "** Dedup file: ",fullpath
+
+                stats = os.stat(fullpath)
+                filesize =  stats[stat.ST_SIZE]
+                totalfilesize = totalfilesize + filesize
+
+                ProcessFile(db,fullpath)
+    
+#    TreeID = db.getfiletreeidbypath(startDir)
+#    NodeIDList = db.listfiletree(TreeID,False)
+#    for NodeID in NodeIDList:
+#            restoredfilename = db.getfullpath(NodeID)
+#
+#            (FullPath,FileName) = os.path.split(restoredfilename)
+#            (FilenameRoot,Extension) = os.path.splitext(FileName)
+#            backupfilename =  restoredfilename.replace(Extension, '~'+Extension)
+#            print "** Restore Node ",NodeID, " = ", restoredfilename
+#            db.restore(NodeID)
+#            comparefiles(backupfilename,restoredfilename)
+
+
+    stats = os.stat("database")
+    databasesize = stats[stat.ST_SIZE]
+    print "### TotalFileSize= ",totalfilesize
+    print "### TotalDatabaseSize= ", databasesize
+    print "### TotalFileSize= ", float(100*databasesize/totalfilesize)
+
+
+
+
+
 if __name__ == "__main__":
+
+    print os.getenv('HOME')
+    startDir = os.path.join(os.getenv('HOME'),"DedupFileAPI-test")
     
     Profilerfile1 = os.path.join(os.getenv('HOME'),"DedupFileAPI.prof")
     Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
     prof = hotshot.Profile(Profilerfile1)
     prof.start()
-    batch1(1000)
+    BatchTest(startDir,2, 2, 1024)
     prof.stop()
     prof.close()
     #subprocess.call("hotshot2calltree","-o "+ Profilerfile2+ " "+Profilerfile1 )
