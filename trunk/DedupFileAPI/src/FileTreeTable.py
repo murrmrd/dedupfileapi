@@ -35,10 +35,10 @@ class FileTree():
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS FileTree')
 
-    def exist(self, PathDataID):
+    def exist(self, parent, PathDataID):
         ""
-        str = 'SELECT count(id) FROM FileTree where PathData_id=?'
-        rows = self.db.execute(str, (PathDataID, ))
+        str = 'SELECT count(id) FROM FileTree WHERE Parent=? AND PathData_id= ?'
+        rows = self.db.execute(str, (parent, PathDataID, ))
         result = False
         for row in rows:
             if (row[0] != 0):
