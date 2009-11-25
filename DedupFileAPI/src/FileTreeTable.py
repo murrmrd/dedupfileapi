@@ -30,7 +30,7 @@ class FileTree():
 
     def create(self):
         ""
-        self.db.execute('CREATE TABLE IF NOT EXISTS FileTree (id INTEGER NOT NULL, Parent INTEGER,PathData_id INTEGER, Node_id INTEGER NOT NULL, PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS FileTree (id INTEGER NOT NULL, Parent INTEGER ,PathData_id INTEGER, Node_id INTEGER NOT NULL, PRIMARY KEY (id))')
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS FileTree')

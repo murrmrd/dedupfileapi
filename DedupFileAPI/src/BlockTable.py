@@ -29,9 +29,10 @@ class Block():
         self.db = db
 
     def create(self):
-        ""
+        "sqllite automatically create indexes for primary key and 'unique' colums"
         #self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL,HashKey TEXT, Data BLOB,PRIMARY KEY (id))')
-        self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL, Data BLOB,PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS DataBlocks (id INTEGER NOT NULL, Data BLOB UNIQUE,PRIMARY KEY (id))')
+
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS DataBlocks')

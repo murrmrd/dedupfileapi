@@ -30,7 +30,7 @@ class Sequence():
 
     def create(self):
         ""
-        self.db.execute('CREATE TABLE IF NOT EXISTS Sequence (id INTEGER NOT NULL, Sequence BLOB,PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS Sequence (id INTEGER NOT NULL, Sequence BLOB UNIQUE,PRIMARY KEY (id))')
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS Sequence')
