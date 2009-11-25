@@ -31,7 +31,7 @@ class Extension():
 
     def create(self):
         ""
-        self.db.execute('CREATE TABLE IF NOT EXISTS Extension (id INTEGER NOT NULL, Name TEXT, PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS Extension (id INTEGER NOT NULL, Name TEXT UNIQUE, PRIMARY KEY (id))')
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS Extension')

@@ -231,7 +231,7 @@ def PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,__recursecounter__):
         mkfile(FileName,FileSize)
 
     if (__recursecounter__< NbDir):
-        for i in range(1,NbDir+1):
+        for i in range(1,NbDir):
             DirectoryName = os.path.join(StartDir,'dir'+str(i))
             #print "Create directory ", DirectoryName
             PopulateDirectory(DirectoryName, Nbfiles, NbDir, MaxFileSize,__recursecounter__)
@@ -293,10 +293,13 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
 
     print "Populate ",startDir
     PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,0)
-    totalfilesize = 0
+    
 
     print "Prepare DB"
-    db = DedupDB.DedupDB()
+    SQLliteDataBasePath = os.path.join(os.getenv('HOME'),"SQLliteDataBase")
+    if os.path.exists(SQLliteDataBasePath):
+        os.remove(SQLliteDataBasePath)
+    db = DedupDB.DedupDB(SQLliteDataBasePath)
 
     print "Start archiving at ",startDir
     #dirwalk(startDir)
@@ -320,9 +323,14 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
 
     stats = os.stat("database")
     databasesize = stats[stat.ST_SIZE]
-    print "### TotalFileSize= ",totalfilesize
+    print "### TotalFileSize    = ",db.__totalfilesize__
     print "### TotalDatabaseSize= ", databasesize
-#    print "### TotalFileSize= ", float(100*databasesize/totalfilesize)
+    print "### Compress RaTio (%)= ", float(100*databasesize/db.__totalfilesize__)
+
+    TreeID = db.getfiletreeidbypath(startDir)
+    NodeIDList = db.listfiletree(TreeID,True)
+
+    os.system("~/downloads/sqlitebrowser "+SQLliteDataBasePath)
 
 
 
@@ -337,11 +345,12 @@ if __name__ == "__main__":
     Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
     prof = hotshot.Profile(Profilerfile1)
     prof.start()
-    BatchTest(startDir,5,4 , 1024)
+    BatchTest(startDir,1,2, 1*1024)
     prof.stop()
     prof.close()
-    #subprocess.call("hotshot2calltree","-o "+ Profilerfile2+ " "+Profilerfile1 )
-    os.system("hotshot2calltree "+"-o "+ Profilerfile2+ " "+Profilerfile1 )
-    os.system("kcachegrind "+Profilerfile2)
+    
+    #os.system("hotshot2calltree "+"-o "+ Profilerfile2+ " "+Profilerfile1 )
+    #os.system("kcachegrind "+Profilerfile2)
+
     
     exit()

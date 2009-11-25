@@ -40,9 +40,12 @@ import DedupFile
 
 class DedupDB ():
     ""
-    __PathSeparator__ = "\\"
+    __PathSeparator__ = os.sep
     logger = logging.getLogger("DedupDB")
     db = sqlite3.connect(':memory:')
+    __totalfilesize__= 0
+
+
 
 
     def init_logger(self):
@@ -59,10 +62,11 @@ class DedupDB ():
         # add ch to logger
         self.logger.addHandler(ch)
 
-    def open_database(self):
+    def open_database(self,SQLliteDataBasePath):
         ""
         #self.logger.debug("Connect to db")
-        self.db = sqlite3.connect('database')
+    
+        self.db = sqlite3.connect(SQLliteDataBasePath)
 
     def create_tables(self):
         ""
@@ -83,11 +87,13 @@ class DedupDB ():
         self.Block.drop()
         self.Sequence.drop()
         self.Extension.drop()
+        self.__totalfilesize__=0
 
-    def __init__(self):
+    def __init__(self,SQLliteDataBasePath):
         " "
+
         self.init_logger()
-        self.open_database()
+        self.open_database(SQLliteDataBasePath)
         self.Block = BlockTable.Block(self.db)
         self.FileTree = FileTreeTable.FileTree(self.db)
         self.PathData = PathTable.PathData(self.db)
@@ -134,6 +140,7 @@ class DedupDB ():
         (__FilenameRoot__, __Extension__) = os.path.splitext(__FileName__)
         __PathSeparator__ = __dedupfile__.getpathseparator()
         __Size__ =  __dedupfile__.getsize()
+        self.__totalfilesize__ = self.__totalfilesize__ +__Size__
         __CompressedSize__ = __dedupfile__.getcompressedsize()
         __FullCompressedFilename__ = __dedupfile__.gettempfilename()
         __CreateTime__ =  __dedupfile__.getcreatetime()
@@ -278,17 +285,17 @@ class DedupDB ():
         st = ""
         (id,Extension) = self.Extension.get(Extension_id)
         st = st +  Extension
-        print st
+#        print st
         (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.getbynodeid(NodeID)
         (id,Name) = self.PathData.get(PathData_id)
         st = Name +  st
-        print st
+#        print st
 
         while (Parent != -1):
             (FileTreeID,Parent,PathData_id,Node_id) = self.FileTree.get(Parent)
             (id,Name) = self.PathData.get(PathData_id)
             st = Name + os.sep + st
-            print st
+#            print st
         return st
 
     def printnodedetails(self,NodeID):
