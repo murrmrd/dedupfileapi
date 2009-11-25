@@ -345,7 +345,7 @@ if __name__ == "__main__":
     Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
     prof = hotshot.Profile(Profilerfile1)
     prof.start()
-    BatchTest(startDir,10,3, 20*1024)
+    BatchTest(startDir,10,4, 20*1024)
     prof.stop()
     prof.close()
     
