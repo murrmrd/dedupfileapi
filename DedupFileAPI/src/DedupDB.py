@@ -119,12 +119,22 @@ class DedupDB ():
         #self.logger.debug("Fill FileTree table")
         fullfilename = fullpath+pathseparator+filenameroot
         PathElements = fullfilename.split(pathseparator)
-        parent=-1
+        #print PathElements
+
         node=-1
         parent = -1
+        #print "parent= ", parent
+        #print "node= ", node
         for PathElement in PathElements:
+            #print "PathElement = ",PathElement
             PathDataID=self.PathData.query(PathElement)
-            if not(self.FileTree.exist(PathDataID)):
+            #print "parent= ", parent
+            #print "node= ", node
+            #print "PathDataID = ",PathDataID
+
+            
+            if not(self.FileTree.exist(parent,PathDataID)):
+                #print "insert!"
                 self.FileTree.insert(parent,PathDataID,node)
             parent= self.FileTree.query(parent,PathDataID)
         return parent
