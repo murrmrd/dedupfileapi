@@ -31,7 +31,7 @@ class PathData():
 
     def create(self):
         ""
-        self.db.execute('CREATE TABLE IF NOT EXISTS PathData (id INTEGER NOT NULL, Name TEXT UNIQUE, PRIMARY KEY (id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS PathData (id INTEGER NOT NULL, Name TEXT , PRIMARY KEY (id))')
 
     def drop(self):
         self.db.execute('DROP TABLE IF EXISTS PathData')

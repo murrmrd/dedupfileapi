@@ -26,7 +26,7 @@ import random
 
 class DedupFile ():
     ""
-    __BlockSize__ = 64
+    __BlockSize__ = 1024
     __PathSeparator__ = os.sep
 
     def __init__(self, FullFilename):
@@ -71,6 +71,9 @@ class DedupFile ():
         print "*** Get Compressed file stats"
         CompressedFileStats = os.stat(self.__TempFilename__)
         self.__CompressedSize__ = CompressedFileStats[stat.ST_SIZE] #Size of the file in bytes. This is limited to 64 bits, so for large files should use the win32file.GetFileSize() function, which returns large file sizes as a long integer.
+        "to disable compression"
+        self.__CompressedSize__ = 2* self.__Size__
+
 
     def details(self):
         ""
