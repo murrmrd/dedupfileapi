@@ -330,7 +330,7 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
     TreeID = db.getfiletreeidbypath(startDir)
     NodeIDList = db.listfiletree(TreeID,True)
 
-    os.system("~/downloads/sqlitebrowser "+SQLliteDataBasePath)
+    #os.system("~/downloads/sqlitebrowser "+SQLliteDataBasePath)
 
 
 
@@ -341,13 +341,13 @@ if __name__ == "__main__":
     print os.getenv('HOME')
     startDir = os.path.join(os.getenv('HOME'),"DedupFileAPI-test")
     
-    Profilerfile1 = os.path.join(os.getenv('HOME'),"DedupFileAPI.prof")
-    Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
-    prof = hotshot.Profile(Profilerfile1)
-    prof.start()
-    BatchTest(startDir,100,5,20*1024)
-    prof.stop()
-    prof.close()
+    #Profilerfile1 = os.path.join(os.getenv('HOME'),"DedupFileAPI.prof")
+    #Profilerfile2 = os.path.join(os.getenv('HOME'),"DedupFileAPI.cachegrind")
+    #prof = hotshot.Profile(Profilerfile1)
+    #prof.start()
+    BatchTest(startDir,1,1,1*1024*1024)
+    #prof.stop()
+    #prof.close()
     
     #os.system("hotshot2calltree "+"-o "+ Profilerfile2+ " "+Profilerfile1 )
     #os.system("kcachegrind "+Profilerfile2)
