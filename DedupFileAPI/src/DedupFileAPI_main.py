@@ -237,7 +237,7 @@ def PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,__recursecounter__):
             PopulateDirectory(DirectoryName, Nbfiles, NbDir, MaxFileSize,__recursecounter__)
 
 def ProcessFile(db,filename):
-    print "** Dedup file: "
+    print "** Dedup file: ", filename
     db.archive(filename)
 
     print "** Archive original"
@@ -272,8 +272,7 @@ def testfile(db,dr,flst):
     for f in  flst:
         fullf = os.path.join(dr,f)
         if os.path.isfile(fullf):
-                print "** Dedup file: ",fullf
-
+                
                 stats = os.stat(fullf)
                 filesize =  stats[stat.ST_SIZE]
 #                totalfilesize = totalfilesize + filesize
@@ -293,7 +292,6 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
 
     print "Populate ",startDir
     PopulateDirectory(StartDir, Nbfiles, NbDir, MaxFileSize,0)
-    
 
     print "Prepare DB"
     SQLliteDataBasePath = os.path.join(os.getenv('HOME'),"SQLliteDataBase")
@@ -302,10 +300,7 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
     db = DedupDB.DedupDB(SQLliteDataBasePath)
 
     print "Start archiving at ",startDir
-    #dirwalk(startDir)
     os.path.walk(startDir,testfile,db)
-    
-
 
     
 #    TreeID = db.getfiletreeidbypath(startDir)
@@ -330,7 +325,7 @@ def BatchTest(StartDir, Nbfiles,NbDir, MaxFileSize):
     TreeID = db.getfiletreeidbypath(startDir)
     NodeIDList = db.listfiletree(TreeID,True)
 
-    #os.system("~/downloads/sqlitebrowser "+SQLliteDataBasePath)
+    os.system("sqlitebrowser "+SQLliteDataBasePath)
 
 
 

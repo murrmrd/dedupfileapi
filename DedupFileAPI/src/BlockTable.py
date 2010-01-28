@@ -53,6 +53,7 @@ class Block():
 
     def exist_block(self,data):
         ""
+        data = zlib.compress(data)
         rows=self.db.execute('SELECT id FROM DataBlocks where Data=?',(sqlite3.Binary(data),))
         result = False
         for row in rows:
@@ -62,6 +63,7 @@ class Block():
 
     def insert(self,data):
         ""
+        data = zlib.compress(data)
         #self.db.execute('INSERT INTO DataBlocks (HashKey, Data) VALUES (?, ?)', (hashlib.sha512(data).hexdigest(), sqlite3.Binary(data)))
         self.db.execute('INSERT INTO DataBlocks (Data) VALUES (?)', (sqlite3.Binary(data),))
 
@@ -75,6 +77,7 @@ class Block():
 
     def query_block(self,data):
         ""
+        data = zlib.compress(data)
         ID = -1
         rows = self.db.execute('SELECT id FROM DataBlocks where Data=?',(sqlite3.Binary(data),))
         for row in rows:
